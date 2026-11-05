@@ -1,26 +1,33 @@
 .data
 black: .word 0x00000000
-hole:  .word 0x00333333     # Grey
+hole:  .word 0x00D3D3D3     # Grey
 mole:  .word 0x00FF0000     # Red
-
-welcome: .asciiz "Welcome to Whack-a-Mole!\n"
 
 .text
 .globl main
 
 main:
-    li $v0, 4
-    la $a0, welcome
-    syscall
+    li $t0, 0x100100CC    # Starting position
+    lw $t1, hole
+    li $t2, 0           
+
+row:
+    li $t3, 0           
+    move $t4, $t0
+
+col:
+    sw $t1, 0($t4)        # Draw hole
+    sw $t1, 4($t4)
+    sw $t1, 64($t4)
+    sw $t1, 68($t4)
+    
+    addi $t4, $t4, 16    
+    addi $t3, $t3, 1
+    blt $t3, 3, col
+
+    addi $t0, $t0, 256   
+    addi $t2, $t2, 1
+    blt $t2, 3, row
 
     li $v0, 10
     syscall
-
-    li $t0, 0x10008000    #gp in bitmap display for memory access
-    li $t1, 0xFFFF0000    #Keyboard control register
-game_loop:
-
-
-    jal draw_board
-
-draw_board:
