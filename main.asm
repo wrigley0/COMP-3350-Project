@@ -65,9 +65,14 @@ pixel_col:
     syscall
 
 total_time:
-    li $a0, 3000             #3000 millisecnond or 3 seconds of delay for user
+    li $v0, 30
     li $a0, 30000            #30000 milliseconds or 30 seconds of total time for lifetime
-    syscall
+    syscall                  #Syscall 30
+
+delay_user:
+    li $v0, 30
+    li $a0, 3000             #3000 milliseconds or 3 seconds of total time for lifetime
+    syscall                  #Syscall 30
 
 point_add:
     lw $t5, score 
