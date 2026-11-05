@@ -1,4 +1,3 @@
-
 .data
 bitmap: .space 16384
 
