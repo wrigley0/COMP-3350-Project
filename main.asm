@@ -15,3 +15,8 @@ main:
 
     li $v0, 10
     syscall
+
+game_loop:
+
+
+    jal draw_board
