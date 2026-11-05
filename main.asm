@@ -65,11 +65,13 @@ pixel_col:
     syscall
 
 total_time:
+    #this is wrong
     li $v0, 30
     li $a0, 30000            #30000 milliseconds or 30 seconds of total time for lifetime
     syscall                  #Syscall 30
 
 delay_user:
+    #this is wrong
     li $v0, 30
     li $a0, 3000             #3000 milliseconds or 3 seconds of total time for lifetime
     syscall                  #Syscall 30
