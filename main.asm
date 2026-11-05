@@ -20,3 +20,5 @@ game_loop:
 
 
     jal draw_board
+
+draw_board:
