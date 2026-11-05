@@ -4,6 +4,7 @@ bitmap: .space 16384
 black: .word 0x00000000
 hole:  .word 0x00D3D3D3     # Grey
 mole:  .word 0x00FF0000     # Red
+score: .word 0
 
 .text
 .globl main
@@ -62,3 +63,16 @@ pixel_col:
 
     li $v0, 10
     syscall
+
+total_time:
+    li $a0, 3000             #3000 millisecnond or 3 seconds of delay for user
+    li $a0, 30000            #30000 milliseconds or 30 seconds of total time for lifetime
+    syscall
+
+point_add:
+    lw $t5, score 
+    addi $t5, $t5, 1
+    sw $t5, score
+
+    jr $ra                   #return 
+    
