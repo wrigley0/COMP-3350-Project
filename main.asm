@@ -20,6 +20,17 @@ main:
     syscall
     move $s0, $a0         # Save random position
 
+    # Generate random mole position (0-8)
+
+    li $v0, 42
+    li $a0, 0
+    li $a1, 9
+    syscall
+
+    # Convert position to 1-9
+
+    addi $s4, $a0, 1 
+
 row:
     li $t3, 0
     move $t4, $t0
