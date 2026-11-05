@@ -17,7 +17,7 @@ main:
     syscall
 
     li $t0, 0x10008000    #gp in bitmap display for memory access
-
+    li $t1, 0xFFFF0000    #Keyboard control register
 game_loop:
 
 
