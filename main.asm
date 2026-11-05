@@ -9,7 +9,13 @@ mole:  .word 0x00FF0000     # Red
 main:
     li $t0, 0x100100CC    # Starting position
     lw $t1, hole
-    li $t2, 0           
+    li $t2, 0     
+
+    li $v0, 42            # Random int range
+    li $a0, 0             # Lower bound of 0
+    li $a1, 9             # Upper bound of 9 (0-8)
+    syscall
+
 
 row:
     li $t3, 0           
