@@ -16,6 +16,8 @@ main:
     li $v0, 10
     syscall
 
+    li $t0, 0x10008000    #gp in bitmap display for memory access
+
 game_loop:
 
 
