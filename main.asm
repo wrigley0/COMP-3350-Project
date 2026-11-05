@@ -4,6 +4,7 @@ bitmap: .space 16384
 black: .word 0x00000000
 hole:  .word 0x00D3D3D3     # Grey
 mole:  .word 0x00FF0000     # Red
+hammer: .word 0x000080FF    # Blue
 score: .word 0
 
 .text
@@ -29,6 +30,10 @@ game_loop:
 
     # Draw board
     jal draw_board
+
+    # Draw a hammer based on the input
+    li $a0, 5 # Temporary user input -- Update after the user input is received
+    jal draw_hammer
 
     # Wait 3 seconds
     jal delay_user
@@ -111,3 +116,99 @@ point_add:
     sw $t5, score
 
     jr $ra
+
+#===================================================================================================
+# draw_hammer procedure starts
+#===================================================================================================
+
+draw_hammer:
+#======================================
+# $a0 = User input
+#======================================
+   # Load the address of bitmap to $s0
+   la $t7, bitmap
+   
+   # Add hammer color to $s1
+   lw $t6, hammer
+   
+   # $t0=x1, $t1=y1, $t2=width, $t3=height
+   li $t0, 12	# x1
+   li $t1, 6	# y1
+   li $t2, 4	# width
+   li $t3, 5	# height
+   
+   # Add based on the user input
+   sub $a0, $a0, 1 # Make 1-9 to 0-8
+   div $t4, $a0, 3 # Divide the input by 3 = the index of the row
+   mul $t5, $t4, 3 # Multiply the index of the row by 3
+   sub $t5, $a0, $t5 # Calculate the remainder
+   sll $t5, $t5, 4 # x distance = 16
+   addu $t0, $t0, $t5 # Adjust x1
+   sll $t4, $t4, 4 # y distance = 16
+   addu $t1, $t1, $t4 # Adjust y1
+   
+   # Get the location of the handle
+   div $t5, $t3, 2
+   add $t5, $t1, $t5
+   
+   # $t2=x2 and $t3=y2
+   add $t2, $t0, $t2 # x2
+   add $t3, $t1, $t3 # y2
+   
+   # Scale x1, y1, x2, and y2
+   sll $t0, $t0, 2 # x1 scale by 4
+   sll $t1, $t1, 8 # y1 scale by 512 x 4 / 8
+   sll $t2, $t2, 2 # x2 scale by 4
+   sll $t3, $t3, 8 # y2 scale by 512 x 4 / 8
+   
+   # Scale the location of handle
+   sll $t5, $t5, 8 # scale the location by 512 x 4 / 8
+   
+   # Calculate the coordinates
+   addu $t1, $t7, $t1 # Row starting address
+   addu $t3, $t7, $t3 # Row ending address
+   addu $t3, $t3, $t0 # Procedure ending address
+   addu $t5, $t7, $t5 # Handle row starting address
+   addu $t5, $t5, $t2 # Handle starting address
+   addu $t0, $t1, $t0 # Hammer starting address (row)
+   addu $t2, $t1, $t2 # Hammer ending address (row)
+   
+draw_hammer_row:
+   
+   # Create a pointer
+   move $t4, $t0
+
+draw_hammer_column:
+   
+   # Color the pixel
+   sw $t6, ($t4)
+   
+   # Move to the next pixel
+   addiu $t4, $t4, 4
+   
+   # Check if need to loop
+   bne $t4, $t2, draw_hammer_column
+   
+   # Check if need to draw the handle
+   bne $t5, $t4, draw_hammer_column_end
+   
+   # Color the handle
+   sw $t6, 0($t5)
+   sw $t6, 4($t5)
+   sw $t6, 8($t5)
+   sw $t6, 12($t5)
+   
+draw_hammer_column_end:
+   
+   # Move on to the next row
+   addiu $t0, $t0, 256
+   addiu $t2, $t2, 256
+   
+   # Check if need to loop
+   bne $t3, $t0, draw_hammer_row  
+   
+jr $ra
+   
+#===================================================================================================
+# draw_hammer procedure ends
+#===================================================================================================
