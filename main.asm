@@ -31,6 +31,9 @@ game_loop:
     # Draw board
     jal draw_board
 
+    # Draw mole in first hole
+    jal draw_mole_first
+
     # Draw a hammer based on the input
     li $a0, 5 # Temporary user input -- Update after the user input is received
     jal draw_hammer
@@ -80,6 +83,63 @@ pixel_col:
     addi $t0, $t0, 4096
     addi $t2, $t2, 1
     blt $t2, 3, row
+
+    jr $ra
+
+
+# Function to draw mole in first hole
+draw_mole_first:
+    # Get first hole position
+    la $t0, bitmap
+    addi $t0, $t0, 3120
+    move $t8, $t0
+
+    # Get mole color
+    lw $t1, mole
+
+    # Draw 8x8 mole
+    li $t2, 0
+
+mole_row:
+    li $t3, 0
+    move $t4, $t0
+
+mole_col:
+    # Skip the corners
+    beq $t2, $zero, check_corner
+    li $t5, 7
+    beq $t2, $t5, check_corner
+    j draw_red
+
+check_corner:
+    beq $t3, $zero, skip_pixel
+    li $t5, 7
+    beq $t3, $t5, skip_pixel
+
+draw_red:
+    sw $t1, 0($t4)
+
+skip_pixel:
+    addi $t4, $t4, 4
+    addi $t3, $t3, 1
+    blt $t3, 8, mole_col
+
+    addi $t0, $t0, 256
+    addi $t2, $t2, 1
+    blt $t2, 8, mole_row
+
+    # Get black color
+    lw $t1, black
+
+    # Draw eyes
+    sw $t1, 520($t8)
+    sw $t1, 532($t8)
+
+    # Draw mouth
+    sw $t1, 1288($t8)
+    sw $t1, 1292($t8)
+    sw $t1, 1296($t8)
+    sw $t1, 1300($t8)
 
     jr $ra
 
