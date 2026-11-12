@@ -31,8 +31,8 @@ game_loop:
     # Draw board
     jal draw_board
 
-    # Draw mole in first hole
-    jal draw_mole_first
+    # Draw mole
+    jal draw_mole
 
     # Draw a hammer based on the input
     li $a0, 5 # Temporary user input -- Update after the user input is received
@@ -87,11 +87,30 @@ pixel_col:
     jr $ra
 
 
-# Function to draw mole in first hole
-draw_mole_first:
-    # Get first hole position
+# Function to draw mole at random position
+draw_mole:
+    # Convert position from 1-9 to 0-8
+    addi $t0, $s4, -1
+
+    # Calculate row and column
+    li $t1, 3
+    div $t0, $t1
+    mflo $t2              # Row
+    mfhi $t3              # Column
+
+    # Get starting position
     la $t0, bitmap
     addi $t0, $t0, 3120
+
+    # Move to correct row
+    sll $t2, $t2, 12
+    addu $t0, $t0, $t2
+
+    # Move to correct column
+    sll $t3, $t3, 6
+    addu $t0, $t0, $t3
+
+    # Save mole starting position
     move $t8, $t0
 
     # Get mole color
