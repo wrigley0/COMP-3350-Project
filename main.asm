@@ -7,6 +7,17 @@ mole:  .word 0x00FF0000     # Red
 hammer: .word 0x000080FF    # Blue
 score: .word 0
 
+score_label: .asciiz "Current score: "
+score_nextline: .asciiz "\n"
+
+#===============================================
+# Don't change these registers
+#===============================================
+# $s1 = starting time
+# $s4 = mole position (1-9)
+# $s5 = converted user input
+#===============================================
+
 .text
 .globl main
 
@@ -33,13 +44,38 @@ game_loop:
 
     # Draw mole
     jal draw_mole
-
-    # Draw a hammer based on the input
-    li $a0, 5 # Temporary user input -- Update after the user input is received
+    
+    # Get the user input
+    jal get_input
+    
+    # Convert the user input
+    move $a0, $v0 # $a0 = the user input
+    jal convert_input
+    
+    # Draw a hammer
+    move $a0, $v0 # $a0 = the converted user input
+    move $s5, $v0 # $s5 = the converted user input
+    lw $a1, hammer # $a1 = hammer color
     jal draw_hammer
-
-    # Wait 3 seconds
-    jal delay_user
+    
+    # Check the user input
+    move $a0, $s5 # $a0 = the converted user input
+    jal check_input
+    
+    # Add point
+    move $a0, $v0 # $a0 = (0 == not correct) or (1 == correct)
+    jal point_add
+    
+    # Print the current point
+    jal print_current_score
+    
+    # Delay
+    jal delay
+    
+    # Erase the hammer
+    move $a0, $s5 # $a0 = the converted user input
+    lw $a1, black # $a1 = black color
+    jal draw_hammer
 
     j game_loop
 
@@ -47,6 +83,13 @@ game_over:
     li $v0, 10
     syscall
 
+
+#===================================================================================================
+# draw_board procedure starts
+#===================================================================================================
+# No inputs
+# No return values
+#======================================
 
 # Function to draw all 9 holes
 draw_board:
@@ -85,7 +128,17 @@ pixel_col:
     blt $t2, 3, row
 
     jr $ra
+    
+#===================================================================================================
+# draw_board procedure ends
+#===================================================================================================
 
+#===================================================================================================
+# draw_mole procedure starts
+#===================================================================================================
+# No inputs
+# No return values
+#======================================
 
 # Function to draw mole at random position
 draw_mole:
@@ -161,7 +214,17 @@ skip_pixel:
     sw $t1, 1300($t8)
 
     jr $ra
+    
+#===================================================================================================
+# draw_mole procedure ends
+#===================================================================================================
 
+#===================================================================================================
+# total_time procedure starts
+#===================================================================================================
+# $s1 = starting time
+# $v0 = (0 == Time is not up) or (1 == Time is up)
+#======================================
 
 # Check if 30 seconds have passed
 total_time:
@@ -177,38 +240,77 @@ total_time:
 
 time_return:
     jr $ra
+    
+#===================================================================================================
+# total_time procedure ends
+#===================================================================================================
 
+#===================================================================================================
+# delay procedure starts
+#===================================================================================================
+# No inputs
+# No return values
+#======================================
 
-# Wait 3 seconds
-delay_user:
+# Wait 0.5 seconds
+delay:
+
     li $v0, 32
-    li $a0, 3000
+    li $a0, 500
     syscall
 
     jr $ra
+    
+#===================================================================================================
+# delay procedure ends
+#===================================================================================================
 
+#===================================================================================================
+# point_add procedure starts
+#===================================================================================================
+# $a0 = (0 == not correct) or (1 == correct)
+# No return values
+#======================================
 
-# Add 1 point
+# Add 1 point if correct
 point_add:
+    
+    # If not correct, jump to the end
+    beq $a0, $zero, point_add_end
+
+    # If correct, add 1 point
     lw $t5, score
     addi $t5, $t5, 1
     sw $t5, score
 
+point_add_end:
+
+    # Return to the caller
     jr $ra
+    
+#===================================================================================================
+# point_add procedure ends
+#===================================================================================================
 
 #===================================================================================================
 # draw_hammer procedure starts
 #===================================================================================================
+# $a0 = Converted user input
+# $a1 = Hammer color
+# No return values
+#======================================
 
+# Draw a hammer above a specific hole based on the user input
 draw_hammer:
-#======================================
-# $a0 = User input
-#======================================
-   # Load the address of bitmap to $s0
+
+   # If $a0 == 0 or the user input is NULL, jump to the end
+   beq $a0, $zero, draw_hammer_end
+
+   # Load the address of bitmap to $t7
    la $t7, bitmap
    
-   # Add hammer color to $s1
-   lw $t6, hammer
+   # Add hammer color to $t6
+   move $t6, $a1
    
    # $t0=x1, $t1=y1, $t2=width, $t3=height
    li $t0, 12	# x1
@@ -286,8 +388,180 @@ draw_hammer_column_end:
    # Check if need to loop
    bne $t3, $t0, draw_hammer_row  
    
-jr $ra
+draw_hammer_end:
+   
+   # Return to the caller
+   jr $ra
    
 #===================================================================================================
 # draw_hammer procedure ends
+#===================================================================================================
+
+#===================================================================================================
+# get_input procedure starts
+#===================================================================================================
+# No inputs
+# $v0 = User input
+#======================================
+
+# Get an input until time is up or the input is received
+get_input:
+
+   # Get the starting time
+   li $v0, 30
+   syscall
+   move $t0, $a0 # $t0 = the starting time
+
+   # Set the time limit
+   li $t1, 3000 # $t1 = the time limit == 3 seconds
+
+get_input_check_time:
+
+   # Get the current time
+   li $v0, 30
+   syscall
+   move $t2, $a0 # $t2 = the current time
+
+   # Check if time is up
+   sub $t2, $t2, $t0 # $t2 = the current time - the starting time
+   bleu $t1, $t2, get_input_end # End if time is up
+   
+get_input_check_keyboard:
+   
+   # Check the keyboard control register
+   lw $t3, 0xFFFF0000($zero) # Load keyboard control register
+   beq $t3, $zero, get_input_check_time # Check time again if no input yet
+   
+get_input_read_keyboard:
+
+   # Load the keyboard data
+   lw $t4, 0xFFFF0004($zero) # Read keyboard data
+   move $v0, $t4 # Move the input to $v0
+   
+get_input_end:
+   
+   # Return to the caller
+   jr $ra
+   
+#===================================================================================================
+# get_input procedure ends
+#===================================================================================================
+
+#===================================================================================================
+# convert_input procedure starts
+#===================================================================================================
+# $a0 = the user input (ASCII)
+# $v0 = the converted user input (# or NULL=0)
+#======================================
+
+# Convert the user input to its corresponding number or NULL=0
+convert_input:
+   
+   # input == 49
+   li $v0, 1 # $v0 = 1
+   beq $a0, 49, convert_input_end # Do not change $v0 after this
+   
+   # input == 50
+   addi $v0, $v0, 1 # $v0 = 2
+   beq $a0, 50, convert_input_end # Do not change $v0 after this
+   
+   # input == 51
+   addi $v0, $v0, 1 # $v0 = 3
+   beq $a0, 51, convert_input_end # Do not change $v0 after this
+   
+   # input == 52
+   addi $v0, $v0, 1 # $v0 = 4
+   beq $a0, 52, convert_input_end # Do not change $v0 after this
+   
+   # input == 53
+   addi $v0, $v0, 1 # $v0 = 5
+   beq $a0, 53, convert_input_end # Do not change $v0 after this
+   
+   # input == 54
+   addi $v0, $v0, 1 # $v0 = 6
+   beq $a0, 54, convert_input_end # Do not change $v0 after this
+   
+   # input == 55
+   addi $v0, $v0, 1 # $v0 = 7
+   beq $a0, 55, convert_input_end # Do not change $v0 after this
+   
+   # input == 56
+   addi $v0, $v0, 1 # $v0 = 8
+   beq $a0, 56, convert_input_end # Do not change $v0 after this
+   
+   # input == 57
+   addi $v0, $v0, 1 # $v0 = 9
+   beq $a0, 57, convert_input_end # Do not change $v0 after this
+   
+   # input == Else
+   li $v0, 0 # $v0 = 0
+   
+convert_input_end:
+   
+   # Return to the caller
+   jr $ra
+
+#===================================================================================================
+# convert_input procedure ends
+#===================================================================================================
+
+#===================================================================================================
+# check_input procedure starts
+#===================================================================================================
+# $s4 = the mole's position (1-9)
+# $a0 = the converted user input (0-9)
+# $v0 = (0 == not correct) or (1 == correct)
+#======================================
+
+# Compare the user input with the mole's position
+check_input:
+   
+   # Set the initial value of $v0
+   li $v0, 0
+   
+   # Do not change $v0 if not correct
+   bne $s4, $a0, check_input_end
+   
+   # Change $v0 if correct
+   li $v0, 1
+   
+check_input_end:
+
+   # Return to the caller
+   jr $ra
+
+#===================================================================================================
+# check_input procedure ends
+#===================================================================================================
+
+#===================================================================================================
+# print_current_score procedure starts
+#===================================================================================================
+# No inputs
+# No return values
+#======================================
+
+# Print the current score
+print_current_score:
+
+   # Print score_label
+   li $v0, 4
+   la $a0, score_label
+   syscall
+   
+   # Print score
+   li $v0, 1
+   lw $a0, score
+   syscall
+   
+   # Print score_nextline
+   li $v0, 4
+   la $a0, score_nextline
+   syscall
+   
+   # Return to the caller
+   jr $ra
+
+#===================================================================================================
+# print_current_score procedure ends
 #===================================================================================================
