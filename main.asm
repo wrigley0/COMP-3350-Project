@@ -7,6 +7,15 @@ mole:  .word 0x00FF0000     # Red
 hammer: .word 0x000080FF    # Blue
 score: .word 0
 
+# Game Over Colors
+red:    .word 0x00FF0000     # Red lettering (GAME)
+
+white:  .word 0x00FFFFFF     # White lettering (OVER)
+
+yellow: .word 0x00FFFF00     # Yellow lettering (SCORE)
+
+blue:   .word 0x000000FF     # Blue lettering (additional text)
+
 score_label: .asciiz "Current score: "
 score_nextline: .asciiz "\n"
 
@@ -18,6 +27,146 @@ score_nextline: .asciiz "\n"
 # $s5 = converted user input
 #===============================================
 
+# LETTERS
+# Letter G
+letter_G:
+    .word 30, 16, 16, 23, 17, 17, 30
+
+# Letter A
+letter_A:
+    .word 14, 17, 17, 31, 17, 17, 17
+
+# Letter M
+letter_M:
+    .word 17, 27, 21, 21, 17, 17, 17
+
+# Letter E
+letter_E:
+    .word 31, 16, 16, 30, 16, 16, 31
+
+# Letter O
+letter_O:
+    .word 14, 17, 17, 17, 17, 17, 14
+
+# Letter V
+letter_V:
+    .word 17, 17, 17, 17, 17, 10, 4
+
+# Letter R
+letter_R:
+    .word 30, 17, 17, 30, 20, 18, 17
+    
+# Letter S
+letter_S:
+    .word 14, 17, 16, 14, 1, 17, 14
+
+# Letter C
+letter_C:
+    .word 14, 17, 16, 16, 16, 17, 14
+
+# NUMBERS
+
+# Number 0
+digit_0:
+    .word 14, 17, 19, 21, 25, 17, 14
+
+# Number 1
+digit_1:
+    .word 4, 12, 4, 4, 4, 4, 14
+
+# Number 2
+digit_2:
+    .word 14, 17, 1, 2, 4, 8, 31
+
+# Number 3
+digit_3:
+    .word 30, 1, 1, 14, 1, 1, 30
+
+# Number 4
+digit_4:
+    .word 2, 6, 10, 18, 31, 2, 2
+
+# Number 5
+digit_5:
+    .word 31, 16, 16, 30, 1, 1, 30
+
+# Number 6
+digit_6:
+    .word 14, 16, 16, 30, 17, 17, 14
+
+# Number 7
+digit_7:
+    .word 31, 1, 2, 4, 8, 8, 8
+
+# Number 8
+digit_8:
+    .word 14, 17, 17, 14, 17, 17, 14
+
+# Number 9
+digit_9:
+    .word 14, 17, 17, 15, 1, 1, 14
+# Digit Table
+digit_table:
+    .word digit_0, digit_1, digit_2, digit_3, digit_4
+    .word digit_5, digit_6, digit_7, digit_8, digit_9
+#========================================
+# SMALL FONT (3x5)
+#========================================
+
+# Letters
+
+small_S:
+    .word 7, 4, 7, 1, 7
+
+small_C:
+    .word 7, 4, 4, 4, 7
+
+small_O:
+    .word 7, 5, 5, 5, 7
+
+small_R:
+    .word 6, 5, 6, 5, 5
+
+small_E:
+    .word 7, 4, 6, 4, 7
+
+# Numbers
+
+small_0:
+    .word 7, 5, 5, 5, 7
+
+small_1:
+    .word 2, 6, 2, 2, 7
+
+small_2:
+    .word 7, 1, 7, 4, 7
+
+small_3:
+    .word 7, 1, 7, 1, 7
+
+small_4:
+    .word 5, 5, 7, 1, 1
+
+small_5:
+    .word 7, 4, 7, 1, 7
+
+small_6:
+    .word 7, 4, 7, 5, 7
+
+small_7:
+    .word 7, 1, 2, 2, 2
+
+small_8:
+    .word 7, 5, 7, 5, 7
+
+small_9:
+    .word 7, 5, 7, 1, 7
+
+# Small digit table
+small_digit_table:
+    .word small_0, small_1, small_2, small_3, small_4
+    .word small_5, small_6, small_7, small_8, small_9
+    
 .text
 .globl main
 
@@ -79,7 +228,13 @@ game_loop:
 
     j game_loop
 
+
 game_over:
+
+    # Draw the game over screen and final score
+    jal draw_game_over
+
+    # Terminate the program
     li $v0, 10
     syscall
 
@@ -565,3 +720,459 @@ print_current_score:
 #===================================================================================================
 # print_current_score procedure ends
 #===================================================================================================
+
+#================================================
+# draw_game_over procedure
+#================================================
+# Clears bitmap and draws game over screen
+#================================================
+
+draw_game_over:
+
+    # Save return address
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+
+    #------------------------------------------
+    # 1. Clear the entire bitmap
+    #------------------------------------------
+
+    la $t0, bitmap
+    li $t1, 0
+    lw $t2, black
+
+clear_bitmap:
+
+    sw $t2, 0($t0)
+
+    addi $t0, $t0, 4
+    addi $t1, $t1, 1
+
+    blt $t1, 4096, clear_bitmap
+
+    #------------------------------------------
+    # 2. Draw GAME in red
+    #------------------------------------------
+
+    li $a0, 12
+    li $a1, 15
+    la $a2, letter_G
+    lw $a3, red
+    jal draw_letter
+
+    li $a0, 19
+    li $a1, 15
+    la $a2, letter_A
+    lw $a3, red
+    jal draw_letter
+
+    li $a0, 26
+    li $a1, 15
+    la $a2, letter_M
+    lw $a3, red
+    jal draw_letter
+
+    li $a0, 33
+    li $a1, 15
+    la $a2, letter_E
+    lw $a3, red
+    jal draw_letter
+
+    #------------------------------------------
+    # 3. Draw OVER in white
+    #------------------------------------------
+
+    li $a0, 12
+    li $a1, 26
+    la $a2, letter_O
+    lw $a3, white
+    jal draw_letter
+
+    li $a0, 19
+    li $a1, 26
+    la $a2, letter_V
+    lw $a3, white
+    jal draw_letter
+
+    li $a0, 26
+    li $a1, 26
+    la $a2, letter_E
+    lw $a3, white
+    jal draw_letter
+
+    li $a0, 33
+    li $a1, 26
+    la $a2, letter_R
+    lw $a3, white
+    jal draw_letter
+    
+    #------------------------------------------
+
+    # 4. Draw SCORE in small yellow font
+
+    #------------------------------------------
+
+    # Letter S
+
+    li $a0, 12
+
+    li $a1, 41
+
+    la $a2, small_S
+
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    # Letter C
+
+    li $a0, 16
+
+    li $a1, 41
+
+    la $a2, small_C
+
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    # Letter O
+
+    li $a0, 20
+
+    li $a1, 41
+
+    la $a2, small_O
+
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    # Letter R
+
+    li $a0, 24
+
+    li $a1, 41
+
+    la $a2, small_R
+
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    # Letter E
+
+    li $a0, 28
+
+    li $a1, 41
+
+    la $a2, small_E
+
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    #------------------------------------------
+
+    # 5. Draw the numerical score
+
+    #------------------------------------------
+
+    jal draw_score
+
+    #------------------------------------------
+    # 4. Restore return address
+    #------------------------------------------
+
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+
+    jr $ra
+
+#================================================
+# draw_game_over procedure ends
+#================================================
+
+
+#================================================
+# draw_pixel procedure
+#================================================
+# $a0 = X coordinate
+# $a1 = Y coordinate
+# $a2 = Color
+#================================================
+
+draw_pixel:
+
+    # Get bitmap address
+    la $t0, bitmap
+
+    # Calculate row offset (Y * 256)
+    sll $t1, $a1, 8
+
+    # Calculate column offset (X * 4)
+    sll $t2, $a0, 2
+
+    # Calculate final address
+    addu $t0, $t0, $t1
+    addu $t0, $t0, $t2
+
+    # Draw pixel
+    sw $a2, 0($t0)
+
+    jr $ra
+
+#================================================
+# draw_letter procedure
+#================================================
+# $a0 = Starting X coordinate
+# $a1 = Starting Y coordinate
+# $a2 = Address of letter pattern
+# $a3 = Letter color
+#================================================
+
+draw_letter:
+
+    # Save return address
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+
+    # Save starting coordinates and color
+    move $t7, $a0
+    move $t8, $a1
+    move $t9, $a3
+
+    # Save the address of the letter pattern
+    move $t6, $a2
+
+    li $t0, 0
+
+letter_row:
+
+    # Load the current row of the letter
+    lw $t1, 0($t6)
+
+    li $t2, 0
+
+letter_column:
+
+    # Determine which bit to check
+    li $t3, 4
+    subu $t3, $t3, $t2
+
+    srlv $t4, $t1, $t3
+    andi $t4, $t4, 1
+
+    # Skip if the bit is zero
+    beq $t4, $zero, skip_letter_pixel
+
+    # Calculate pixel coordinates
+    addu $a0, $t7, $t2
+    addu $a1, $t8, $t0
+
+    # Set pixel color
+    move $a2, $t9
+
+    # Save working registers
+    addi $sp, $sp, -12
+    sw $t0, 0($sp)
+    sw $t1, 4($sp)
+    sw $t2, 8($sp)
+
+    # Draw pixel
+    jal draw_pixel
+
+    # Restore working registers
+    lw $t0, 0($sp)
+    lw $t1, 4($sp)
+    lw $t2, 8($sp)
+    addi $sp, $sp, 12
+
+skip_letter_pixel:
+
+    # Move to next column
+    addi $t2, $t2, 1
+    blt $t2, 5, letter_column
+
+    # Move to next row of the letter pattern
+    addi $t6, $t6, 4
+    addi $t0, $t0, 1
+
+    blt $t0, 7, letter_row
+
+    # Restore return address
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+
+    jr $ra
+
+#================================================
+# draw_score procedure
+#================================================
+# Reads the player's score and displays it
+# underneath SCORE on the bitmap.
+#================================================
+
+#================================================
+# draw_score procedure
+#================================================
+# Reads the player's score and displays it
+# underneath SCORE on the bitmap.
+#================================================
+
+draw_score:
+
+    # Save return address and temporary values
+    addi $sp, $sp, -12
+    sw $ra, 8($sp)
+
+    # Load player's score
+    lw $t0, score
+
+    # Divide score by 10
+    li $t1, 10
+    div $t0, $t1
+
+    mflo $t2              # Tens digit
+    mfhi $t3              # Ones digit
+
+    # Save both digits
+    sw $t2, 0($sp)
+    sw $t3, 4($sp)
+
+    #------------------------------------------
+    # Draw the ones digit
+    #------------------------------------------
+
+    lw $t3, 4($sp)
+
+    # Find digit pattern
+    sll $t4, $t3, 2
+    la $t5, small_digit_table
+    addu $t5, $t5, $t4
+    lw $a2, 0($t5)
+
+    # Set drawing position and color
+    li $a0, 24
+    li $a1, 49
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+    #------------------------------------------
+    # Draw tens digit if necessary
+    #------------------------------------------
+
+    lw $t2, 0($sp)
+
+    # Skip if tens digit is zero
+    beq $t2, $zero, draw_score_end
+
+    # Find digit pattern
+    sll $t4, $t2, 2
+    la $t5, small_digit_table
+    addu $t5, $t5, $t4
+    lw $a2, 0($t5)
+
+    # Set drawing position and color
+    li $a0, 20
+    li $a1, 49
+    lw $a3, yellow
+
+    jal draw_small_letter
+
+draw_score_end:
+
+    # Restore return address
+    lw $ra, 8($sp)
+    addi $sp, $sp, 12
+
+    jr $ra
+
+#================================================
+# draw_score procedure ends
+#================================================
+
+#================================================
+# draw_small_letter procedure
+#================================================
+# $a0 = Starting X coordinate
+# $a1 = Starting Y coordinate
+# $a2 = Address of letter pattern
+# $a3 = Letter color
+#================================================
+
+draw_small_letter:
+
+    # Save return address
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+
+    # Save starting coordinates and color
+    move $t7, $a0
+    move $t8, $a1
+    move $t9, $a3
+
+    # Save address of letter pattern
+    move $t6, $a2
+
+    li $t0, 0
+
+small_letter_row:
+
+    # Load current row
+    lw $t1, 0($t6)
+
+    li $t2, 0
+
+small_letter_column:
+
+    # Determine which bit to check
+    li $t3, 2
+    subu $t3, $t3, $t2
+
+    srlv $t4, $t1, $t3
+    andi $t4, $t4, 1
+
+    # Skip if bit is zero
+    beq $t4, $zero, skip_small_pixel
+
+    # Calculate pixel coordinates
+    addu $a0, $t7, $t2
+    addu $a1, $t8, $t0
+
+    # Set pixel color
+    move $a2, $t9
+
+    # Save working registers
+    addi $sp, $sp, -12
+    sw $t0, 0($sp)
+    sw $t1, 4($sp)
+    sw $t2, 8($sp)
+
+    # Draw pixel
+    jal draw_pixel
+
+    # Restore working registers
+    lw $t0, 0($sp)
+    lw $t1, 4($sp)
+    lw $t2, 8($sp)
+    addi $sp, $sp, 12
+
+skip_small_pixel:
+
+    # Move to next column
+    addi $t2, $t2, 1
+    blt $t2, 3, small_letter_column
+
+    # Move to next row
+    addi $t6, $t6, 4
+    addi $t0, $t0, 1
+
+    blt $t0, 5, small_letter_row
+
+    # Restore return address
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+
+    jr $ra
